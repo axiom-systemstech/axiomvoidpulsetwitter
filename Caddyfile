@@ -1,0 +1,9 @@
+axiom-void-pulse-twitter.example.com {
+    root * /var/www/html
+    file_server
+    encode gzip
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+    }
+}

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="assets/favicon.png">
+    <link rel="manifest" href="manifest.json">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>AXIOM VOID PULSE TWITTER | Analizador de tweets</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/addons.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"></script>
+</head>
+<body>
+<div class="blob1"></div>
+<div class="blob2"></div>
+<header>
+    <div class="logo">AXIOM SYSTEMS</div>
+    <button class="theme-toggle" id="themeToggle">🌙</button>
+</header>
+<main>
+    <h1>🐦 VOID PULSE TWITTER</h1>
+    <div class="subtitle">Analiza tus tweets antes de postear. Detecta riesgo de ratio, backlash y te ayuda a mejorar.</div>
+
+    <div class="grid-2col">
+        <div class="glass-card">
+            <label>🔗 LINK DEL TWEET O TEXTO</label>
+            <input type="text" id="tweetInput" placeholder="https://x.com/usuario/status/123... o escribe tu tweet aquí">
+            
+            <div class="flex-row" style="margin-top: 16px;">
+                <button id="analyzeBtn" class="primary">🔍 ANALIZAR TWEET</button>
+            </div>
+            
+            <div class="example-tweets" style="margin-top: 20px;">
+                <p style="font-size: 11px; color: var(--muted);">📝 Ejemplos para probar:</p>
+                <div class="example-buttons">
+                    <button class="example-btn">Me encanta este producto es increíble 🔥</button>
+                    <button class="example-btn">Esto es una mierda, qué vergüenza 💢</button>
+                    <button class="example-btn">🚨 NUEVO DESCUBRIMIENTO que va a cambiar todo</button>
+                    <button class="example-btn">No sé qué pensar... 🤔</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card">
+            <label>📊 ANÁLISIS DEL TWEET</label>
+            <div class="result-container" id="resultContainer">
+                <div class="placeholder">// El análisis aparecerá aquí...</div>
+            </div>
+            <div class="flex-row">
+                <button id="copyResultBtn">📋 Copiar análisis</button>
+                <button id="enhanceBtn" class="primary">✨ VERSIÓN MEJORADA</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-box"><div class="stat-number" id="ratioRisk">—</div><div class="stat-label">Riesgo Ratio</div></div>
+        <div class="stat-box"><div class="stat-number" id="backlashRisk">—</div><div class="stat-label">Backlash</div></div>
+        <div class="stat-box"><div class="stat-number" id="toxicityScore">—</div><div class="stat-label">Toxicidad</div></div>
+        <div class="stat-box"><div class="stat-number" id="viralityScore">—</div><div class="stat-label">Viralidad</div></div>
+    </div>
+
+    <div class="premium-locked">
+        <h3>🔒 VOID PULSE TWITTER Enterprise</h3>
+        <p style="color: var(--muted); max-width: 600px; margin: 0 auto;">¿Necesitas analizar miles de tweets automáticamente? El mismo motor en Rust para integrar en tu infraestructura. API en tiempo real.</p>
+        <a href="https://axiom-systemstech.github.io/axiom-systems/" target="_blank" class="btn-premium">💼 Solicitar versión Enterprise →</a>
+    </div>
+</main>
+<footer>© 2026 AXIOM SYSTEMS · Análisis 100% local · Tus datos no salen de tu navegador</footer>
+<script src="js/ui.js"></script>
+</body>
+</html>

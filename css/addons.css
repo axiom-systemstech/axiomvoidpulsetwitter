@@ -1,0 +1,42 @@
+/* ============================================
+   AXIOM VOID PULSE TWITTER - ADDONS
+   Estilos adicionales sin tocar diseño base
+   ============================================ */
+
+.result-content .highlight {
+    color: var(--accent-glow-1);
+    font-weight: bold;
+}
+
+.result-content .warning {
+    color: var(--risk-mid);
+}
+
+.result-content .danger {
+    color: var(--risk-high);
+}
+
+.suggestion-box {
+    background: var(--card-bg);
+    border-left: 3px solid var(--accent-success);
+    padding: 12px;
+    margin-top: 12px;
+    border-radius: 8px;
+}
+
+.suggestion-box strong {
+    color: var(--accent-success);
+}
+
+@keyframes pulse {
+    0% { opacity: 0.6; transform: scale(0.98); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+.result-container {
+    animation: pulse 0.3s ease-out;
+}
+
+.stat-number {
+    transition: all 0.3s ease;
+}
