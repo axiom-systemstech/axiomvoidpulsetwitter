@@ -1,26 +1,92 @@
 <!DOCTYPE html>
 <html lang="es" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <link rel="icon" type="image/png" href="assets/favicon.png">
     <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="assets/favicon.png">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AXIOM VOID PULSE TWITTER | Analizador de tweets</title>
+    <title>AXIOM VOID PULSE TWITTER | Analiza tweets antes de postear</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/addons.css">
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs2@0.0.2/qrcode.min.js"></script>
+    <style>
+        :root[data-theme="dark"] {
+            --bg-color: #03060a;
+            --surface-color: rgba(9,13,20,0.97);
+            --text-main: #F5F6F8;
+            --text-muted: #8E92A2;
+            --accent-glow-1: #00e5ff;
+            --accent-glow-2: #9b51e0;
+            --accent-success: #00ff66;
+            --border-color: rgba(255,255,255,0.07);
+            --code-bg: #06090E;
+            --card-bg: rgba(9,13,20,0.6);
+            --glass-fill: rgba(255,255,255,0.02);
+            --glass-stroke: rgba(255,255,255,0.15);
+        }
+        :root[data-theme="light"] {
+            --bg-color: #F2F4F8;
+            --surface-color: rgba(255,255,255,0.96);
+            --text-main: #101219;
+            --text-muted: #5F6473;
+            --accent-glow-1: #00b8cc;
+            --accent-glow-2: #823bc2;
+            --accent-success: #00aa44;
+            --border-color: rgba(0,0,0,0.09);
+            --code-bg: #EAEFF5;
+            --card-bg: rgba(255,255,255,0.8);
+            --glass-fill: rgba(0,0,0,0.01);
+            --glass-stroke: rgba(0,0,0,0.12);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            transition: background 0.3s ease;
+        }
+        .blob1, .blob2 { position: fixed; width: 500px; height: 500px; border-radius: 50%; pointer-events: none; z-index: 1; opacity: 0.15; }
+        .blob1 { top: 10%; right: 10%; background: radial-gradient(circle, var(--accent-glow-1) 0%, transparent 70%); }
+        .blob2 { bottom: 10%; left: 5%; background: radial-gradient(circle, var(--accent-glow-2) 0%, transparent 70%); }
+        header { max-width: 1200px; margin: 0 auto; padding: 30px 24px; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 10; }
+        .logo { font-weight: 600; font-size: 13px; letter-spacing: 0.25em; text-transform: uppercase; }
+        .theme-toggle { background: none; border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 16px; font-size: 11px; text-transform: uppercase; cursor: pointer; border-radius: 20px; transition: 0.3s; }
+        .theme-toggle:hover { background: var(--text-main); color: var(--bg-color); }
+        main { max-width: 1200px; margin: 0 auto; padding: 20px 24px 60px; position: relative; z-index: 5; }
+        h1 { font-family: 'Playfair Display', serif; font-size: 52px; text-align: center; margin-bottom: 16px; }
+        .subtitle { text-align: center; font-size: 17px; color: var(--text-muted); margin-bottom: 48px; max-width: 700px; margin-left: auto; margin-right: auto; }
+        .glass-card { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--border-color); border-radius: 32px; padding: 28px; margin-bottom: 24px; }
+        .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        @media (max-width: 800px) { .grid-2col { grid-template-columns: 1fr; } }
+        label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.15em; color: var(--text-muted); display: block; margin-bottom: 12px; font-weight: 600; }
+        input { width: 100%; background: var(--code-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 14px 16px; color: var(--text-main); font-family: monospace; font-size: 13px; outline: none; }
+        input:focus { border-color: var(--accent-glow-1); }
+        .stats-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 16px; }
+        .stat-box { background: var(--code-bg); border-radius: 12px; padding: 12px 20px; flex: 1; text-align: center; border: 1px solid var(--border-color); }
+        .stat-number { font-size: 28px; font-weight: 700; color: var(--accent-success); }
+        .stat-label { font-size: 10px; text-transform: uppercase; color: var(--text-muted); margin-top: 4px; }
+        button { background: var(--code-bg); border: 1px solid var(--border-color); padding: 12px 24px; border-radius: 40px; color: var(--text-main); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer; transition: 0.2s; }
+        button.primary { background: linear-gradient(135deg, var(--accent-glow-1), var(--accent-glow-2)); color: #000; border: none; }
+        button.primary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0,229,255,0.3); }
+        .result-container { background: var(--code-bg); border-radius: 16px; padding: 20px; min-height: 200px; margin-bottom: 16px; font-family: monospace; font-size: 13px; white-space: pre-wrap; line-height: 1.6; }
+        .premium-locked { background: linear-gradient(135deg, rgba(155,81,224,0.1), rgba(0,229,255,0.05)); border: 1px solid var(--accent-glow-2); border-radius: 24px; padding: 24px; text-align: center; margin-top: 48px; }
+        .premium-locked h3 { font-family: 'Playfair Display', serif; font-size: 24px; margin-bottom: 12px; }
+        .btn-premium { background: var(--accent-glow-2); color: #fff; padding: 14px 32px; border-radius: 40px; text-decoration: none; display: inline-block; margin-top: 16px; font-weight: 600; }
+        footer { text-align: center; padding: 40px 24px; font-size: 11px; color: var(--text-muted); border-top: 1px solid var(--border-color); }
+        .flex-row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 16px; }
+        .example-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .example-btn { background: var(--code-bg); border: 1px solid var(--border-color); padding: 6px 12px; font-size: 10px; text-transform: none; letter-spacing: normal; font-weight: normal; }
+        .example-btn:hover { border-color: var(--accent-glow-1); }
+        .risk-low { color: var(--accent-success); }
+        .risk-mid { color: #ffaa00; }
+        .risk-high { color: #ff4444; }
+    </style>
 </head>
 <body>
-<div class="blob1"></div>
-<div class="blob2"></div>
-<header>
-    <div class="logo">AXIOM SYSTEMS</div>
-    <button class="theme-toggle" id="themeToggle">🌙</button>
-</header>
+<div class="blob1"></div><div class="blob2"></div>
+<header><div class="logo">AXIOM SYSTEMS</div><button class="theme-toggle" id="themeToggle">🌙</button></header>
 <main>
     <h1>🐦 VOID PULSE TWITTER</h1>
     <div class="subtitle">Analiza tus tweets antes de postear. Detecta riesgo de ratio, backlash y te ayuda a mejorar.</div>
@@ -28,28 +94,19 @@
     <div class="grid-2col">
         <div class="glass-card">
             <label>🔗 LINK DEL TWEET O TEXTO</label>
-            <input type="text" id="tweetInput" placeholder="https://x.com/usuario/status/123... o escribe tu tweet aquí">
-            
-            <div class="flex-row" style="margin-top: 16px;">
-                <button id="analyzeBtn" class="primary">🔍 ANALIZAR TWEET</button>
+            <input type="text" id="tweetInput" placeholder="https://x.com/usuario/status/123... o escribe tu tweet aquí" value="Me encanta este producto es increíble 🔥">
+            <div class="example-buttons">
+                <button class="example-btn">🔥 Me encanta este producto</button>
+                <button class="example-btn">💢 Esto es una mierda</button>
+                <button class="example-btn">🚀 NUEVO DESCUBRIMIENTO</button>
+                <button class="example-btn">🤔 No sé qué pensar</button>
             </div>
-            
-            <div class="example-tweets" style="margin-top: 20px;">
-                <p style="font-size: 11px; color: var(--muted);">📝 Ejemplos para probar:</p>
-                <div class="example-buttons">
-                    <button class="example-btn">Me encanta este producto es increíble 🔥</button>
-                    <button class="example-btn">Esto es una mierda, qué vergüenza 💢</button>
-                    <button class="example-btn">🚨 NUEVO DESCUBRIMIENTO que va a cambiar todo</button>
-                    <button class="example-btn">No sé qué pensar... 🤔</button>
-                </div>
-            </div>
+            <div class="flex-row"><button id="analyzeBtn" class="primary">🔍 ANALIZAR TWEET</button></div>
         </div>
 
         <div class="glass-card">
             <label>📊 ANÁLISIS DEL TWEET</label>
-            <div class="result-container" id="resultContainer">
-                <div class="placeholder">// El análisis aparecerá aquí...</div>
-            </div>
+            <div class="result-container" id="resultContainer">// El análisis aparecerá aquí...</div>
             <div class="flex-row">
                 <button id="copyResultBtn">📋 Copiar análisis</button>
                 <button id="enhanceBtn" class="primary">✨ VERSIÓN MEJORADA</button>
@@ -65,12 +122,141 @@
     </div>
 
     <div class="premium-locked">
-        <h3>🔒 VOID PULSE TWITTER Enterprise</h3>
-        <p style="color: var(--muted); max-width: 600px; margin: 0 auto;">¿Necesitas analizar miles de tweets automáticamente? El mismo motor en Rust para integrar en tu infraestructura. API en tiempo real.</p>
+        <h3>🔒 AXIOM VOID PULSE TWITTER Enterprise</h3>
+        <p>¿Necesitas analizar miles de tweets automáticamente? El mismo motor en Rust para integrar en tu infraestructura.</p>
         <a href="https://axiom-systemstech.github.io/axiom-systems/" target="_blank" class="btn-premium">💼 Solicitar versión Enterprise →</a>
     </div>
 </main>
 <footer>© 2026 AXIOM SYSTEMS · Análisis 100% local · Tus datos no salen de tu navegador</footer>
-<script src="js/ui.js"></script>
+
+<script>
+    (function() {
+        const tweetInput = document.getElementById('tweetInput');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const resultContainer = document.getElementById('resultContainer');
+        const copyResultBtn = document.getElementById('copyResultBtn');
+        const enhanceBtn = document.getElementById('enhanceBtn');
+        const ratioRiskSpan = document.getElementById('ratioRisk');
+        const backlashRiskSpan = document.getElementById('backlashRisk');
+        const toxicityScoreSpan = document.getElementById('toxicityScore');
+        const viralityScoreSpan = document.getElementById('viralityScore');
+
+        let currentAnalysis = null;
+        let currentText = "";
+
+        const HATE_WORDS = ['odio', 'puta', 'mierda', 'imbécil', 'basura', '💢', '🤬', 'detesto', 'asco'];
+        const VIRAL_WORDS = ['🔥', '🚀', '💣', 'nuevo', 'descubrimiento', 'revolucionario', 'exclusiva'];
+
+        function getRiskClass(value) {
+            if (value >= 60) return 'risk-high';
+            if (value >= 30) return 'risk-mid';
+            return 'risk-low';
+        }
+
+        function analyzeTweet(text) {
+            if (!text.trim()) return null;
+            const lowerText = text.toLowerCase();
+            let toxicity = 0;
+            for (let word of HATE_WORDS) {
+                if (lowerText.includes(word)) toxicity += 25;
+            }
+            toxicity = Math.min(toxicity, 100);
+            
+            let virality = 20;
+            for (let word of VIRAL_WORDS) {
+                if (lowerText.includes(word)) virality += 15;
+            }
+            const hashtags = (text.match(/#\w+/g) || []).length;
+            virality += hashtags * 5;
+            virality = Math.min(virality, 100);
+            
+            let ratioRisk = toxicity >= 70 ? 85 : (toxicity >= 40 ? 55 : 20);
+            const upperCount = (text.match(/[A-Z]{3,}/g) || []).length;
+            ratioRisk = Math.min(ratioRisk + upperCount * 5, 100);
+            
+            let backlashLevel = "BAJO";
+            if (toxicity >= 60) backlashLevel = "ALTO";
+            else if (toxicity >= 30) backlashLevel = "MEDIO";
+            
+            let enhanced = text;
+            if (toxicity > 50) {
+                enhanced = enhanced.replace(/odio/gi, 'no me convence');
+                enhanced = enhanced.replace(/mierda/gi, 'no es lo mejor');
+            }
+            if (text.length < 30 && !text.includes('?')) enhanced += ' ¿Qué opinas?';
+            if (virality < 30 && !enhanced.includes('🔥')) enhanced += ' 🔥';
+            
+            let result = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+            result += `📊 ANÁLISIS DEL TWEET\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+            result += `📝 Texto original:\n"${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"\n\n`;
+            result += `⚠️ Toxicidad: ${toxicity}%\n`;
+            result += `📈 Viralidad: ${virality}%\n`;
+            result += `💢 Riesgo Ratio: ${ratioRisk}%\n`;
+            result += `🔨 Backlash: ${backlashLevel} (${toxicity}%)\n\n`;
+            result += `✨ VERSIÓN MEJORADA:\n"${enhanced}"\n\n`;
+            result += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+            result += `💡 Recomendación: ${ratioRisk > 70 ? 'NO POSTEES ESTO. Revísalo antes.' : 'Tweet seguro. Puedes postear con confianza.'}`;
+            
+            return { toxicity, virality, ratioRisk, backlashLevel, enhanced, result };
+        }
+
+        function updateUI(analysis) {
+            if (!analysis) return;
+            ratioRiskSpan.innerText = `${analysis.ratioRisk}%`;
+            ratioRiskSpan.className = `stat-number ${getRiskClass(analysis.ratioRisk)}`;
+            backlashRiskSpan.innerText = analysis.backlashLevel;
+            backlashRiskSpan.className = `stat-number ${analysis.backlashLevel === 'ALTO' ? 'risk-high' : (analysis.backlashLevel === 'MEDIO' ? 'risk-mid' : 'risk-low')}`;
+            toxicityScoreSpan.innerText = `${analysis.toxicity}%`;
+            toxicityScoreSpan.className = `stat-number ${getRiskClass(analysis.toxicity)}`;
+            viralityScoreSpan.innerText = `${analysis.virality}%`;
+            resultContainer.innerHTML = analysis.result.replace(/\n/g, '<br>');
+        }
+
+        function analyze() {
+            const text = tweetInput.value.trim();
+            if (!text) { resultContainer.innerHTML = '// Introduce un tweet para analizar'; return; }
+            if (text.includes('x.com') || text.includes('twitter.com')) {
+                resultContainer.innerHTML = '// 🔄 No se puede extraer el tweet automáticamente. Escribe el texto manualmente.';
+                return;
+            }
+            const analysis = analyzeTweet(text);
+            currentAnalysis = analysis;
+            currentText = text;
+            if (analysis) updateUI(analysis);
+        }
+
+        function copyResult() {
+            if (!currentAnalysis) { alert("Analiza un tweet primero"); return; }
+            navigator.clipboard.writeText(currentAnalysis.result);
+            copyResultBtn.innerText = "✓ Copiado!";
+            setTimeout(() => { copyResultBtn.innerText = "📋 Copiar análisis"; }, 2000);
+        }
+
+        function enhanceTweet() {
+            if (!currentAnalysis) { alert("Analiza un tweet primero"); return; }
+            navigator.clipboard.writeText(currentAnalysis.enhanced);
+            enhanceBtn.innerText = "✓ Copiado!";
+            setTimeout(() => { enhanceBtn.innerText = "✨ VERSIÓN MEJORADA"; }, 2000);
+            alert("Versión mejorada copiada al portapapeles");
+        }
+
+        analyzeBtn.addEventListener('click', analyze);
+        copyResultBtn.addEventListener('click', copyResult);
+        enhanceBtn.addEventListener('click', enhanceTweet);
+        tweetInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') analyze(); });
+        document.querySelectorAll('.example-btn').forEach(btn => {
+            btn.addEventListener('click', () => { tweetInput.value = btn.innerText; analyze(); });
+        });
+
+        const themeToggle = document.getElementById('themeToggle');
+        const htmlTag = document.documentElement;
+        themeToggle.addEventListener('click', () => {
+            const isDark = htmlTag.getAttribute('data-theme') === 'dark';
+            htmlTag.setAttribute('data-theme', isDark ? 'light' : 'dark');
+            themeToggle.innerText = isDark ? '☀️' : '🌙';
+        });
+        analyze();
+    })();
+</script>
 </body>
 </html>
