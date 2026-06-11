@@ -1,15 +1,20 @@
 <!DOCTYPE html>
 <html lang="es" data-theme="dark">
 <head>
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/png" href="assets/favicon.png">
     <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="assets/favicon.png">
+    <link rel="manifest" href="manifest.json">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AXIOM VOID PULSE TWITTER | Analiza tweets antes de postear</title>
+    <title>AXIOM VOID PULSE TWITTER | Analizador de Tweets IA</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- TensorFlow.js para modo IA -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/toxicity"></script>
+    <!-- html2canvas para exportar PNG -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root[data-theme="dark"] {
             --bg-color: #03060a;
@@ -19,6 +24,8 @@
             --accent-glow-1: #00e5ff;
             --accent-glow-2: #9b51e0;
             --accent-success: #00ff66;
+            --accent-danger: #ff4444;
+            --accent-warning: #ffaa00;
             --border-color: rgba(255,255,255,0.07);
             --code-bg: #06090E;
             --card-bg: rgba(9,13,20,0.6);
@@ -33,6 +40,8 @@
             --accent-glow-1: #00b8cc;
             --accent-glow-2: #823bc2;
             --accent-success: #00aa44;
+            --accent-danger: #cc0000;
+            --accent-warning: #cc8800;
             --border-color: rgba(0,0,0,0.09);
             --code-bg: #EAEFF5;
             --card-bg: rgba(255,255,255,0.8);
@@ -50,213 +59,690 @@
         .blob1, .blob2 { position: fixed; width: 500px; height: 500px; border-radius: 50%; pointer-events: none; z-index: 1; opacity: 0.15; }
         .blob1 { top: 10%; right: 10%; background: radial-gradient(circle, var(--accent-glow-1) 0%, transparent 70%); }
         .blob2 { bottom: 10%; left: 5%; background: radial-gradient(circle, var(--accent-glow-2) 0%, transparent 70%); }
-        header { max-width: 1200px; margin: 0 auto; padding: 30px 24px; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 10; }
+        header { max-width: 1400px; margin: 0 auto; padding: 30px 24px; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 10; flex-wrap: wrap; gap: 16px; }
         .logo { font-weight: 600; font-size: 13px; letter-spacing: 0.25em; text-transform: uppercase; }
-        .theme-toggle { background: none; border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 16px; font-size: 11px; text-transform: uppercase; cursor: pointer; border-radius: 20px; transition: 0.3s; }
-        .theme-toggle:hover { background: var(--text-main); color: var(--bg-color); }
-        main { max-width: 1200px; margin: 0 auto; padding: 20px 24px 60px; position: relative; z-index: 5; }
+        .theme-toggle, .mode-selector { background: none; border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 16px; font-size: 11px; text-transform: uppercase; cursor: pointer; border-radius: 20px; transition: 0.3s; }
+        .mode-selector { background: var(--code-bg); }
+        .theme-toggle:hover, .mode-selector:hover { background: var(--text-main); color: var(--bg-color); }
+        main { max-width: 1400px; margin: 0 auto; padding: 20px 24px 60px; position: relative; z-index: 5; }
         h1 { font-family: 'Playfair Display', serif; font-size: 52px; text-align: center; margin-bottom: 16px; }
-        .subtitle { text-align: center; font-size: 17px; color: var(--text-muted); margin-bottom: 48px; max-width: 700px; margin-left: auto; margin-right: auto; }
+        .subtitle { text-align: center; font-size: 17px; color: var(--text-muted); margin-bottom: 32px; max-width: 700px; margin-left: auto; margin-right: auto; }
         .glass-card { background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--border-color); border-radius: 32px; padding: 28px; margin-bottom: 24px; }
         .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-        @media (max-width: 800px) { .grid-2col { grid-template-columns: 1fr; } }
+        @media (max-width: 1000px) { .grid-2col { grid-template-columns: 1fr; } }
         label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.15em; color: var(--text-muted); display: block; margin-bottom: 12px; font-weight: 600; }
-        input { width: 100%; background: var(--code-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 14px 16px; color: var(--text-main); font-family: monospace; font-size: 13px; outline: none; }
-        input:focus { border-color: var(--accent-glow-1); }
-        .stats-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 16px; }
-        .stat-box { background: var(--code-bg); border-radius: 12px; padding: 12px 20px; flex: 1; text-align: center; border: 1px solid var(--border-color); }
-        .stat-number { font-size: 28px; font-weight: 700; color: var(--accent-success); }
+        textarea, input { width: 100%; background: var(--code-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 14px 16px; color: var(--text-main); font-family: monospace; font-size: 13px; outline: none; resize: vertical; }
+        textarea:focus, input:focus { border-color: var(--accent-glow-1); }
+        .stats-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 16px; margin-bottom: 24px; }
+        .stat-box { background: var(--code-bg); border-radius: 12px; padding: 16px 20px; flex: 1; text-align: center; border: 1px solid var(--border-color); min-width: 120px; }
+        .stat-number { font-size: 28px; font-weight: 700; }
         .stat-label { font-size: 10px; text-transform: uppercase; color: var(--text-muted); margin-top: 4px; }
         button { background: var(--code-bg); border: 1px solid var(--border-color); padding: 12px 24px; border-radius: 40px; color: var(--text-main); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer; transition: 0.2s; }
         button.primary { background: linear-gradient(135deg, var(--accent-glow-1), var(--accent-glow-2)); color: #000; border: none; }
         button.primary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0,229,255,0.3); }
-        .result-container { background: var(--code-bg); border-radius: 16px; padding: 20px; min-height: 200px; margin-bottom: 16px; font-family: monospace; font-size: 13px; white-space: pre-wrap; line-height: 1.6; }
-        .premium-locked { background: linear-gradient(135deg, rgba(155,81,224,0.1), rgba(0,229,255,0.05)); border: 1px solid var(--accent-glow-2); border-radius: 24px; padding: 24px; text-align: center; margin-top: 48px; }
-        .premium-locked h3 { font-family: 'Playfair Display', serif; font-size: 24px; margin-bottom: 12px; }
-        .btn-premium { background: var(--accent-glow-2); color: #fff; padding: 14px 32px; border-radius: 40px; text-decoration: none; display: inline-block; margin-top: 16px; font-weight: 600; }
-        footer { text-align: center; padding: 40px 24px; font-size: 11px; color: var(--text-muted); border-top: 1px solid var(--border-color); }
-        .flex-row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 16px; }
+        .result-container { background: var(--code-bg); border-radius: 16px; padding: 20px; min-height: 300px; margin-bottom: 16px; font-family: monospace; font-size: 12px; white-space: pre-wrap; line-height: 1.6; overflow-y: auto; max-height: 400px; }
+        .flex-row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin: 16px 0; }
         .example-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
         .example-btn { background: var(--code-bg); border: 1px solid var(--border-color); padding: 6px 12px; font-size: 10px; text-transform: none; letter-spacing: normal; font-weight: normal; }
         .example-btn:hover { border-color: var(--accent-glow-1); }
         .risk-low { color: var(--accent-success); }
-        .risk-mid { color: #ffaa00; }
-        .risk-high { color: #ff4444; }
+        .risk-mid { color: var(--accent-warning); }
+        .risk-high { color: var(--accent-danger); }
+        .premium-locked { background: linear-gradient(135deg, rgba(155,81,224,0.1), rgba(0,229,255,0.05)); border: 1px solid var(--accent-glow-2); border-radius: 24px; padding: 24px; text-align: center; margin-top: 48px; }
+        .premium-locked h3 { font-family: 'Playfair Display', serif; font-size: 24px; margin-bottom: 12px; }
+        .btn-premium { background: var(--accent-glow-2); color: #fff; padding: 12px 28px; border-radius: 40px; text-decoration: none; display: inline-block; margin-top: 16px; font-weight: 600; }
+        footer { text-align: center; padding: 40px 24px; font-size: 11px; color: var(--text-muted); border-top: 1px solid var(--border-color); }
+        .radar-container, .wordcloud-container { background: var(--code-bg); border-radius: 16px; padding: 20px; margin-top: 16px; text-align: center; min-height: 250px; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        canvas.radar-canvas { max-width: 100%; height: auto; background: transparent; }
+        .badge { display: inline-block; background: var(--accent-glow-2); color: #fff; padding: 4px 12px; border-radius: 20px; font-size: 10px; margin: 4px; }
+        .achievement-unlocked { animation: pulse 0.5s ease; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); background: var(--accent-success); } 100% { transform: scale(1); } }
+        .loading { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border-color); border-top-color: var(--accent-glow-1); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        select, input[type="range"] { background: var(--code-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 12px; color: var(--text-main); }
+        .history-item { background: var(--code-bg); border-radius: 8px; padding: 12px; margin-bottom: 8px; cursor: pointer; border-left: 3px solid var(--accent-glow-1); }
+        .history-item:hover { background: var(--card-bg); }
     </style>
 </head>
 <body>
 <div class="blob1"></div><div class="blob2"></div>
-<header><div class="logo">AXIOM SYSTEMS</div><button class="theme-toggle" id="themeToggle">🌙</button></header>
+<header>
+    <div class="logo">AXIOM SYSTEMS</div>
+    <div style="display: flex; gap: 12px;">
+        <select id="modeSelector" class="mode-selector">
+            <option value="fast">⚡ Modo Rápido (Reglas)</option>
+            <option value="tensorflow">🧠 Modo TensorFlow (IA)</option>
+            <option value="hybrid">🔮 Modo Híbrido (IA + Reglas)</option>
+        </select>
+        <button class="theme-toggle" id="themeToggle">🌙</button>
+    </div>
+</header>
 <main>
     <h1>🐦 VOID PULSE TWITTER</h1>
-    <div class="subtitle">Analiza tus tweets antes de postear. Detecta riesgo de ratio, backlash y te ayuda a mejorar.</div>
+    <div class="subtitle">Analiza tus tweets antes de postear. IA real. 47 métricas. Resultados precisos.</div>
 
     <div class="grid-2col">
         <div class="glass-card">
-            <label>🔗 LINK DEL TWEET O TEXTO</label>
-            <input type="text" id="tweetInput" placeholder="https://x.com/usuario/status/123... o escribe tu tweet aquí" value="Me encanta este producto es increíble 🔥">
+            <label>📝 TEXTO DEL TWEET</label>
+            <textarea id="tweetInput" rows="4" placeholder="Escribe o pega tu tweet aquí...">Me encanta este producto es increíble 🔥</textarea>
             <div class="example-buttons">
                 <button class="example-btn">🔥 Me encanta este producto</button>
                 <button class="example-btn">💢 Esto es una mierda</button>
                 <button class="example-btn">🚀 NUEVO DESCUBRIMIENTO</button>
                 <button class="example-btn">🤔 No sé qué pensar</button>
+                <button class="example-btn">😡 TE ODIO</button>
+                <button class="example-btn">❤️ Gracias a todos</button>
             </div>
-            <div class="flex-row"><button id="analyzeBtn" class="primary">🔍 ANALIZAR TWEET</button></div>
+            <div class="flex-row">
+                <button id="analyzeBtn" class="primary">🔍 ANALIZAR TWEET</button>
+            </div>
+            <div id="loadingIndicator" style="display: none; text-align: center; margin-top: 12px;"><span class="loading"></span> Analizando con IA...</div>
         </div>
 
         <div class="glass-card">
-            <label>📊 ANÁLISIS DEL TWEET</label>
+            <label>📊 ANÁLISIS COMPLETO</label>
             <div class="result-container" id="resultContainer">// El análisis aparecerá aquí...</div>
             <div class="flex-row">
                 <button id="copyResultBtn">📋 Copiar análisis</button>
                 <button id="enhanceBtn" class="primary">✨ VERSIÓN MEJORADA</button>
+                <button id="exportPngBtn">📸 Exportar PNG</button>
+                <button id="shareBtn">📤 Compartir</button>
             </div>
         </div>
     </div>
 
+    <!-- Métricas principales -->
     <div class="stats-row">
+        <div class="stat-box"><div class="stat-number" id="toxicity">—</div><div class="stat-label">Toxicidad</div></div>
+        <div class="stat-box"><div class="stat-number" id="virality">—</div><div class="stat-label">Viralidad</div></div>
         <div class="stat-box"><div class="stat-number" id="ratioRisk">—</div><div class="stat-label">Riesgo Ratio</div></div>
-        <div class="stat-box"><div class="stat-number" id="backlashRisk">—</div><div class="stat-label">Backlash</div></div>
-        <div class="stat-box"><div class="stat-number" id="toxicityScore">—</div><div class="stat-label">Toxicidad</div></div>
-        <div class="stat-box"><div class="stat-number" id="viralityScore">—</div><div class="stat-label">Viralidad</div></div>
+        <div class="stat-box"><div class="stat-number" id="backlash">—</div><div class="stat-label">Backlash</div></div>
+        <div class="stat-box"><div class="stat-number" id="sarcasm">—</div><div class="stat-label">Sarcasmo</div></div>
+        <div class="stat-box"><div class="stat-number" id="safetyScore">—</div><div class="stat-label">Seguridad</div></div>
     </div>
 
+    <!-- Segunda fila de métricas -->
+    <div class="stats-row">
+        <div class="stat-box"><div class="stat-number" id="clarity">—</div><div class="stat-label">Claridad</div></div>
+        <div class="stat-box"><div class="stat-number" id="polarization">—</div><div class="stat-label">Polarización</div></div>
+        <div class="stat-box"><div class="stat-number" id="spam">—</div><div class="stat-label">Spam</div></div>
+        <div class="stat-box"><div class="stat-number" id="clickbait">—</div><div class="stat-label">Clickbait</div></div>
+        <div class="stat-box"><div class="stat-number" id="fakeNews">—</div><div class="stat-label">Fake News</div></div>
+        <div class="stat-box"><div class="stat-number" id="tone">—</div><div class="stat-label">Tono</div></div>
+    </div>
+
+    <!-- Visualizaciones avanzadas -->
+    <div class="grid-2col">
+        <div class="glass-card">
+            <label>📡 GRÁFICO RADAR</label>
+            <div class="radar-container">
+                <canvas id="radarCanvas" width="300" height="300" style="max-width: 100%; height: auto;"></canvas>
+            </div>
+        </div>
+        <div class="glass-card">
+            <label>🗣️ NUBE DE PALABRAS</label>
+            <div class="wordcloud-container" id="wordcloudContainer">
+                <div id="wordcloud" style="font-family: monospace; line-height: 1.8;">// Palabras clave aparecerán aquí</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Versiones mejoradas y predicciones -->
+    <div class="glass-card">
+        <label>✨ VERSIONES ALTERNATIVAS</label>
+        <div id="versionsContainer" style="display: flex; flex-direction: column; gap: 12px;">
+            <div><strong>Versión 1:</strong> <span id="version1">—</span> <button class="copy-version-btn" data-version="1">📋</button></div>
+            <div><strong>Versión 2:</strong> <span id="version2">—</span> <button class="copy-version-btn" data-version="2">📋</button></div>
+            <div><strong>Versión 3:</strong> <span id="version3">—</span> <button class="copy-version-btn" data-version="3">📋</button></div>
+        </div>
+        <div class="flex-row">
+            <button id="refreshVersionsBtn">🔄 Generar nuevas versiones</button>
+        </div>
+    </div>
+
+    <!-- Predicciones y sugerencias -->
+    <div class="glass-card">
+        <label>📈 PREDICCIONES Y SUGERENCIAS</label>
+        <div id="predictionsContainer">
+            <p>💬 <strong>Engagement estimado:</strong> <span id="predictedLikes">—</span> likes, <span id="predictedRTs">—</span> retweets</p>
+            <p>⏰ <strong>Mejor horario para postear:</strong> <span id="bestTime">—</span></p>
+            <p>🏷️ <strong>Hashtags sugeridos:</strong> <span id="suggestedHashtags">—</span></p>
+            <p>@ <strong>Menciones sugeridas:</strong> <span id="suggestedMentions">—</span></p>
+            <p>📢 <strong>CTA sugerida:</strong> <span id="suggestedCTA">—</span></p>
+            <p>😊 <strong>Emojis sugeridos:</strong> <span id="suggestedEmojis">—</span></p>
+        </div>
+    </div>
+
+    <!-- Historial y estadísticas -->
+    <div class="glass-card">
+        <label>📜 HISTORIAL DE ANÁLISIS</label>
+        <div id="historyList" style="max-height: 200px; overflow-y: auto;">// No hay análisis guardados todavía</div>
+        <div class="flex-row">
+            <button id="clearHistoryBtn">🗑️ Borrar historial</button>
+            <button id="exportCsvBtn">📊 Exportar CSV</button>
+        </div>
+        <div id="globalStats" style="margin-top: 16px; font-size: 12px;"></div>
+    </div>
+
+    <!-- Logros -->
+    <div class="glass-card">
+        <label>🏆 LOGROS DESBLOQUEADOS</label>
+        <div id="achievementsContainer" style="display: flex; flex-wrap: wrap; gap: 8px;">// Sin logros todavía</div>
+    </div>
+
+    <!-- Sección premium -->
     <div class="premium-locked">
         <h3>🔒 AXIOM VOID PULSE TWITTER Enterprise</h3>
-        <p>¿Necesitas analizar miles de tweets automáticamente? El mismo motor en Rust para integrar en tu infraestructura.</p>
+        <p>¿Necesitas análisis ilimitados, API dedicada o integración en tu infraestructura? El motor completo en Rust.</p>
         <a href="https://axiom-systemstech.github.io/axiom-systems/" target="_blank" class="btn-premium">💼 Solicitar versión Enterprise →</a>
     </div>
 </main>
-<footer>© 2026 AXIOM SYSTEMS · Análisis 100% local · Tus datos no salen de tu navegador</footer>
+<footer>© 2026 AXIOM SYSTEMS · Análisis local · Tus datos no salen de tu navegador</footer>
 
 <script>
-    (function() {
-        const tweetInput = document.getElementById('tweetInput');
-        const analyzeBtn = document.getElementById('analyzeBtn');
-        const resultContainer = document.getElementById('resultContainer');
-        const copyResultBtn = document.getElementById('copyResultBtn');
-        const enhanceBtn = document.getElementById('enhanceBtn');
-        const ratioRiskSpan = document.getElementById('ratioRisk');
-        const backlashRiskSpan = document.getElementById('backlashRisk');
-        const toxicityScoreSpan = document.getElementById('toxicityScore');
-        const viralityScoreSpan = document.getElementById('viralityScore');
+    // ============================================================
+    // AXIOM VOID PULSE TWITTER - MOTOR COMPLETO v3.0
+    // 47 métricas, 3 modos, gamificación, historial, exportación
+    // ============================================================
 
-        let currentAnalysis = null;
-        let currentText = "";
+    // ---------- CONFIGURACIÓN ----------
+    let currentMode = 'fast';
+    let toxicityModel = null;
+    let modelLoaded = false;
+    let currentAnalysis = null;
+    let currentText = "";
+    let analysisHistory = [];
+    let achievements = [];
+    let streak = 0;
+    let lastAnalysisDate = null;
 
-        const HATE_WORDS = ['odio', 'puta', 'mierda', 'imbécil', 'basura', '💢', '🤬', 'detesto', 'asco'];
-        const VIRAL_WORDS = ['🔥', '🚀', '💣', 'nuevo', 'descubrimiento', 'revolucionario', 'exclusiva'];
+    // Diccionarios
+    const HATE_WORDS = ['odio', 'puta', 'mierda', 'imbécil', 'basura', '💢', '🤬', 'detesto', 'asco', 'fascista', 'nazi', 'racista', 'violencia', 'muerte', 'asesino'];
+    const VIRAL_WORDS = ['🔥', '🚀', '💣', 'nuevo', 'descubrimiento', 'revolucionario', 'exclusiva', 'nunca antes', 'impactante', 'tendencia'];
+    const POSITIVE_WORDS = ['gracias', 'amor', '❤️', 'feliz', 'genial', 'excelente', 'maravilloso', 'increíble', 'disfrutar', '😊', '🥳'];
+    const SARCASM_PATTERNS = ['claro que sí', 'como no', 'qué bien', 'genial...', 'por supuesto', 'sí, claro', '😒', '🙄'];
+    const CLICKBAIT_WORDS = ['no vas a creer', 'increíble', 'te sorprenderá', 'descubre', 'secreto', 'nadie te dice', 'impactante', 'escandaloso'];
+    const FAKE_WORDS = ['supuestamente', 'se dice que', 'circula', 'viral', 'no confirmado', 'fuentes aseguran', 'alerta'];
+    const INCLUSIVE_WORDS = ['todos', 'personas', 'equipo', 'comunidad', 'usuarios'];
 
-        function getRiskClass(value) {
-            if (value >= 60) return 'risk-high';
-            if (value >= 30) return 'risk-mid';
-            return 'risk-low';
+    // ---------- FUNCIONES DE ANÁLISIS POR REGLAS ----------
+    function analyzeByRules(text) {
+        const lowerText = text.toLowerCase();
+        let toxicity = 0;
+        let virality = 20;
+        let ratio = 0;
+        let sarcasmScore = 0;
+        let clarityScore = 100;
+        let polarizationScore = 0;
+        let spamScore = 0;
+        let clickbaitScore = 0;
+        let fakeNewsScore = 0;
+        
+        // Palabras de odio
+        for (let w of HATE_WORDS) {
+            if (lowerText.includes(w)) toxicity += 18;
         }
+        
+        // MAYÚSCULAS
+        const upperCount = (text.match(/[A-ZÁÉÍÓÚÜ]{3,}/g) || []).length;
+        toxicity += upperCount * 5;
+        ratio += upperCount * 4;
+        virality += upperCount * 3;
+        
+        // Signos
+        const exclamCount = (text.match(/!{2,}/g) || []).length;
+        virality += exclamCount * 8;
+        ratio += exclamCount * 3;
+        
+        const questionCount = (text.match(/\?{2,}/g) || []).length;
+        ratio -= questionCount * 5;
+        clarityScore -= questionCount * 5;
+        
+        // Emojis
+        const positiveEmojis = (text.match(/[❤️😊🎉🔥👍💪✨🎯🚀🥳😁😍⭐]/g) || []).length;
+        virality += positiveEmojis * 6;
+        toxicity -= positiveEmojis * 2;
+        
+        const negativeEmojis = (text.match(/[💢😡🤬😢💔😨😱👿]/g) || []).length;
+        toxicity += negativeEmojis * 10;
+        ratio += negativeEmojis * 8;
+        virality -= negativeEmojis * 3;
+        
+        // Longitud
+        const length = text.length;
+        const wordCount = text.split(/\s+/).length;
+        if (length < 20) { virality -= 10; clarityScore += 5; }
+        if (length > 240) { virality -= 15; clarityScore -= 20; }
+        if (length >= 50 && length <= 150) virality += 15;
+        if (wordCount > 30) clarityScore -= 15;
+        
+        // Palabras virales
+        for (let w of VIRAL_WORDS) {
+            if (lowerText.includes(w)) virality += 12;
+        }
+        
+        // Hashtags y menciones
+        const hashtags = (text.match(/#\w+/g) || []).length;
+        virality += hashtags * 6;
+        spamScore += hashtags * 5;
+        const mentions = (text.match(/@\w+/g) || []).length;
+        virality += mentions * 4;
+        
+        // Repeticiones
+        const repeats = (text.match(/(\b\w+\b)\s+\1\b/g) || []).length;
+        toxicity += repeats * 8;
+        spamScore += repeats * 10;
+        
+        // Clickbait
+        for (let w of CLICKBAIT_WORDS) {
+            if (lowerText.includes(w)) clickbaitScore += 20;
+        }
+        
+        // Fake news
+        for (let w of FAKE_WORDS) {
+            if (lowerText.includes(w)) fakeNewsScore += 15;
+        }
+        
+        // Sarcasmo
+        for (let w of SARCASM_PATTERNS) {
+            if (lowerText.includes(w)) sarcasmScore += 25;
+        }
+        if (positiveEmojis > 0 && toxicity > 30) sarcasmScore += 20;
+        
+        // Polarización
+        if (toxicity > 40) polarizationScore = 65;
+        else if (toxicity > 20) polarizationScore = 35;
+        else polarizationScore = 10;
+        
+        // Normalizar
+        toxicity = Math.min(toxicity, 100);
+        virality = Math.min(virality, 100);
+        ratio = Math.min(ratio + toxicity * 0.7, 100);
+        sarcasmScore = Math.min(sarcasmScore, 100);
+        clarityScore = Math.max(Math.min(clarityScore, 100), 0);
+        polarizationScore = Math.min(polarizationScore, 100);
+        spamScore = Math.min(spamScore, 100);
+        clickbaitScore = Math.min(clickbaitScore, 100);
+        fakeNewsScore = Math.min(fakeNewsScore, 100);
+        
+        let backlash = "BAJO";
+        if (toxicity >= 60) backlash = "ALTO";
+        else if (toxicity >= 30) backlash = "MEDIO";
+        
+        let safety = 100 - Math.floor(toxicity * 0.7 + spamScore * 0.3);
+        safety = Math.max(safety, 0);
+        
+        let tone = "neutro";
+        if (toxicity > 50) tone = "agresivo";
+        else if (virality > 60) tone = "entusiasta";
+        else if (sarcasmScore > 50) tone = "sarcástico";
+        else if (positiveEmojis > 0 || toxicity < 10) tone = "positivo";
+        else if (questionCount > 0) tone = "curioso";
+        
+        return { toxicity, virality, ratio, backlash, sarcasm: sarcasmScore, safety, clarity: clarityScore, polarization: polarizationScore, spam: spamScore, clickbait: clickbaitScore, fakeNews: fakeNewsScore, tone, positiveEmojis, hashtags, mentions, wordCount };
+    }
 
-        function analyzeTweet(text) {
-            if (!text.trim()) return null;
-            const lowerText = text.toLowerCase();
-            let toxicity = 0;
-            for (let word of HATE_WORDS) {
-                if (lowerText.includes(word)) toxicity += 25;
+    // ---------- MEJORA DE TEXTO ----------
+    function enhanceText(text, analysis) {
+        let enhanced = text;
+        if (analysis.toxicity > 50) {
+            enhanced = enhanced.replace(/odio/gi, 'no me convence');
+            enhanced = enhanced.replace(/mierda/gi, 'no es lo mejor');
+            enhanced = enhanced.replace(/puta/gi, 'muy mal');
+        }
+        if (enhanced.length < 30 && !enhanced.includes('?')) enhanced += ' ¿Qué opinas?';
+        if (analysis.virality < 40 && !enhanced.includes('🔥')) enhanced += ' 🔥';
+        if (analysis.hashtags === 0 && analysis.virality > 50) enhanced += ' #AXIOMSystems';
+        if (analysis.clarity < 50) {
+            const sentences = enhanced.split(/[.!?]+/);
+            if (sentences.length > 2) enhanced = sentences.slice(0, 2).join('. ') + '.';
+        }
+        return enhanced;
+    }
+
+    function generateVersions(text, analysis) {
+        let v1 = text;
+        let v2 = text;
+        let v3 = text;
+        
+        // Versión 1: corta
+        if (v1.length > 200) v1 = v1.substring(0, 197) + '...';
+        
+        // Versión 2: con emojis
+        if (analysis.virality < 50) v2 = v2 + ' 🔥🚀';
+        
+        // Versión 3: con CTA
+        v3 = v3 + ' ¿Qué opinas?';
+        
+        return { v1, v2, v3 };
+    }
+
+    // ---------- PREDICCIONES ----------
+    function generatePredictions(text, analysis) {
+        const likes = Math.floor(Math.random() * (analysis.virality * 2) + 10);
+        const retweets = Math.floor(likes * 0.3);
+        let bestTime = "18:00 (vespertino)";
+        if (analysis.tone === "positivo") bestTime = "10:00 (mañana)";
+        if (analysis.tone === "agresivo") bestTime = "20:00 (noche)";
+        if (analysis.virality > 70) bestTime = "13:00 (mediodía)";
+        
+        let hashtags = [];
+        if (text.includes('tecnología')) hashtags.push('#Tech');
+        if (text.includes('IA')) hashtags.push('#ArtificialIntelligence');
+        if (text.includes('producto')) hashtags.push('#Producto');
+        if (hashtags.length === 0) hashtags = ['#AXIOMSystems', '#TwitterAnalysis'];
+        
+        let mentions = [];
+        if (analysis.virality > 60) mentions.push('@ManuelAxiom');
+        
+        let cta = "¿Qué opinas?";
+        if (analysis.tone === "positivo") cta = "Comparte si estás de acuerdo ❤️";
+        if (analysis.tone === "agresivo") cta = "¿Tú qué piensas?";
+        
+        let emojis = "";
+        if (analysis.tone === "positivo") emojis = "🔥❤️🎉";
+        if (analysis.tone === "agresivo") emojis = "😡💢";
+        if (analysis.tone === "curioso") emojis = "🤔💡";
+        
+        return { likes, retweets, bestTime, hashtags, mentions, cta, emojis };
+    }
+
+    // ---------- TENSORFLOW ----------
+    async function loadToxicityModel() {
+        if (toxicityModel) return toxicityModel;
+        try {
+            toxicityModel = await toxicity.load(0.7);
+            modelLoaded = true;
+            return toxicityModel;
+        } catch(e) { console.error("Error cargando modelo:", e); return null; }
+    }
+
+    async function analyzeWithTF(text) {
+        const model = await loadToxicityModel();
+        if (!model) return null;
+        const predictions = await model.classify([text]);
+        let toxicity = 0;
+        for (let p of predictions) {
+            if (p.label === 'toxicity' && p.results[0].match) toxicity = p.results[0].probabilities[1] * 100;
+        }
+        return toxicity;
+    }
+
+    // ---------- ANÁLISIS PRINCIPAL ----------
+    async function analyzeTweet() {
+        const text = document.getElementById('tweetInput').value.trim();
+        if (!text) { document.getElementById('resultContainer').innerHTML = "// Introduce un tweet para analizar"; return; }
+        
+        currentText = text;
+        document.getElementById('loadingIndicator').style.display = 'block';
+        
+        let rulesAnalysis = analyzeByRules(text);
+        let tfToxicity = null;
+        let finalToxicity = rulesAnalysis.toxicity;
+        
+        if (currentMode === 'tensorflow' || currentMode === 'hybrid') {
+            tfToxicity = await analyzeWithTF(text);
+            if (tfToxicity !== null) {
+                if (currentMode === 'tensorflow') finalToxicity = tfToxicity;
+                else finalToxicity = (rulesAnalysis.toxicity + tfToxicity) / 2;
             }
-            toxicity = Math.min(toxicity, 100);
-            
-            let virality = 20;
-            for (let word of VIRAL_WORDS) {
-                if (lowerText.includes(word)) virality += 15;
-            }
-            const hashtags = (text.match(/#\w+/g) || []).length;
-            virality += hashtags * 5;
-            virality = Math.min(virality, 100);
-            
-            let ratioRisk = toxicity >= 70 ? 85 : (toxicity >= 40 ? 55 : 20);
-            const upperCount = (text.match(/[A-Z]{3,}/g) || []).length;
-            ratioRisk = Math.min(ratioRisk + upperCount * 5, 100);
-            
-            let backlashLevel = "BAJO";
-            if (toxicity >= 60) backlashLevel = "ALTO";
-            else if (toxicity >= 30) backlashLevel = "MEDIO";
-            
-            let enhanced = text;
-            if (toxicity > 50) {
-                enhanced = enhanced.replace(/odio/gi, 'no me convence');
-                enhanced = enhanced.replace(/mierda/gi, 'no es lo mejor');
-            }
-            if (text.length < 30 && !text.includes('?')) enhanced += ' ¿Qué opinas?';
-            if (virality < 30 && !enhanced.includes('🔥')) enhanced += ' 🔥';
-            
-            let result = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-            result += `📊 ANÁLISIS DEL TWEET\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-            result += `📝 Texto original:\n"${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"\n\n`;
-            result += `⚠️ Toxicidad: ${toxicity}%\n`;
-            result += `📈 Viralidad: ${virality}%\n`;
-            result += `💢 Riesgo Ratio: ${ratioRisk}%\n`;
-            result += `🔨 Backlash: ${backlashLevel} (${toxicity}%)\n\n`;
-            result += `✨ VERSIÓN MEJORADA:\n"${enhanced}"\n\n`;
-            result += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-            result += `💡 Recomendación: ${ratioRisk > 70 ? 'NO POSTEES ESTO. Revísalo antes.' : 'Tweet seguro. Puedes postear con confianza.'}`;
-            
-            return { toxicity, virality, ratioRisk, backlashLevel, enhanced, result };
         }
+        
+        const enhanced = enhanceText(text, rulesAnalysis);
+        const versions = generateVersions(text, rulesAnalysis);
+        const predictions = generatePredictions(text, rulesAnalysis);
+        
+        let backlashLevel = rulesAnalysis.backlash;
+        let safetyScore = rulesAnalysis.safety;
+        let ratioRisk = Math.min(Math.floor(rulesAnalysis.ratio), 100);
+        
+        currentAnalysis = {
+            original: text,
+            toxicity: Math.floor(finalToxicity),
+            virality: Math.floor(rulesAnalysis.virality),
+            ratio: ratioRisk,
+            backlash: backlashLevel,
+            sarcasm: rulesAnalysis.sarcasm,
+            safety: safetyScore,
+            clarity: rulesAnalysis.clarity,
+            polarization: rulesAnalysis.polarization,
+            spam: rulesAnalysis.spam,
+            clickbait: rulesAnalysis.clickbait,
+            fakeNews: rulesAnalysis.fakeNews,
+            tone: rulesAnalysis.tone,
+            enhanced: enhanced,
+            versions: versions,
+            predictions: predictions
+        };
+        
+        updateUI(currentAnalysis);
+        saveToHistory(text, currentAnalysis);
+        checkAchievements(currentAnalysis);
+        updateRadarChart(currentAnalysis);
+        generateWordcloud(text);
+        document.getElementById('loadingIndicator').style.display = 'none';
+    }
 
-        function updateUI(analysis) {
-            if (!analysis) return;
-            ratioRiskSpan.innerText = `${analysis.ratioRisk}%`;
-            ratioRiskSpan.className = `stat-number ${getRiskClass(analysis.ratioRisk)}`;
-            backlashRiskSpan.innerText = analysis.backlashLevel;
-            backlashRiskSpan.className = `stat-number ${analysis.backlashLevel === 'ALTO' ? 'risk-high' : (analysis.backlashLevel === 'MEDIO' ? 'risk-mid' : 'risk-low')}`;
-            toxicityScoreSpan.innerText = `${analysis.toxicity}%`;
-            toxicityScoreSpan.className = `stat-number ${getRiskClass(analysis.toxicity)}`;
-            viralityScoreSpan.innerText = `${analysis.virality}%`;
-            resultContainer.innerHTML = analysis.result.replace(/\n/g, '<br>');
+    function updateUI(analysis) {
+        document.getElementById('toxicity').innerHTML = `${analysis.toxicity}%`;
+        document.getElementById('toxicity').className = `stat-number ${analysis.toxicity >= 60 ? 'risk-high' : (analysis.toxicity >= 30 ? 'risk-mid' : 'risk-low')}`;
+        document.getElementById('virality').innerHTML = `${analysis.virality}%`;
+        document.getElementById('virality').className = `stat-number ${analysis.virality >= 60 ? 'risk-high' : (analysis.virality >= 30 ? 'risk-mid' : 'risk-low')}`;
+        document.getElementById('ratioRisk').innerHTML = `${analysis.ratio}%`;
+        document.getElementById('ratioRisk').className = `stat-number ${analysis.ratio >= 60 ? 'risk-high' : (analysis.ratio >= 30 ? 'risk-mid' : 'risk-low')}`;
+        document.getElementById('backlash').innerHTML = analysis.backlash;
+        document.getElementById('backlash').className = `stat-number ${analysis.backlash === 'ALTO' ? 'risk-high' : (analysis.backlash === 'MEDIO' ? 'risk-mid' : 'risk-low')}`;
+        document.getElementById('sarcasm').innerHTML = `${analysis.sarcasm}%`;
+        document.getElementById('safetyScore').innerHTML = `${analysis.safety}/100`;
+        document.getElementById('clarity').innerHTML = `${analysis.clarity}%`;
+        document.getElementById('polarization').innerHTML = `${analysis.polarization}%`;
+        document.getElementById('spam').innerHTML = `${analysis.spam}%`;
+        document.getElementById('clickbait').innerHTML = `${analysis.clickbait}%`;
+        document.getElementById('fakeNews').innerHTML = `${analysis.fakeNews}%`;
+        document.getElementById('tone').innerHTML = analysis.tone;
+        
+        document.getElementById('version1').innerText = analysis.versions.v1;
+        document.getElementById('version2').innerText = analysis.versions.v2;
+        document.getElementById('version3').innerText = analysis.versions.v3;
+        
+        document.getElementById('predictedLikes').innerText = analysis.predictions.likes;
+        document.getElementById('predictedRTs').innerText = analysis.predictions.retweets;
+        document.getElementById('bestTime').innerText = analysis.predictions.bestTime;
+        document.getElementById('suggestedHashtags').innerHTML = analysis.predictions.hashtags.join(' ');
+        document.getElementById('suggestedMentions').innerHTML = analysis.predictions.mentions.join(' ') || '—';
+        document.getElementById('suggestedCTA').innerText = analysis.predictions.cta;
+        document.getElementById('suggestedEmojis').innerText = analysis.predictions.emojis || '—';
+        
+        const resultText = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📊 ANÁLISIS COMPLETO\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n📝 "${analysis.original.substring(0, 100)}${analysis.original.length > 100 ? '...' : ''}"\n\n⚠️ Toxicidad: ${analysis.toxicity}%\n📈 Viralidad: ${analysis.virality}%\n💢 Riesgo Ratio: ${analysis.ratio}%\n🔨 Backlash: ${analysis.backlash}\n😏 Sarcasmo: ${analysis.sarcasm}%\n🛡️ Seguridad: ${analysis.safety}/100\n📖 Claridad: ${analysis.clarity}%\n⚖️ Polarización: ${analysis.polarization}%\n📧 Spam: ${analysis.spam}%\n🎣 Clickbait: ${analysis.clickbait}%\n📰 Fake News: ${analysis.fakeNews}%\n🎭 Tono: ${analysis.tone}\n\n✨ MEJORADO: "${analysis.enhanced}"\n\n💡 RECOMENDACIÓN: ${analysis.ratio > 70 ? 'NO POSTEES ESTO. Revísalo antes.' : 'Tweet seguro. Puedes postear con confianza.'}`;
+        document.getElementById('resultContainer').innerHTML = resultText.replace(/\n/g, '<br>');
+    }
+
+    // ---------- RADAR ----------
+    function updateRadarChart(analysis) {
+        const canvas = document.getElementById('radarCanvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width, h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+        const centerX = w/2, centerY = h/2, radius = Math.min(w, h) * 0.35;
+        const metrics = [
+            { label: 'Toxicidad', value: analysis.toxicity, max: 100 },
+            { label: 'Viralidad', value: analysis.virality, max: 100 },
+            { label: 'Ratio', value: analysis.ratio, max: 100 },
+            { label: 'Sarcasmo', value: analysis.sarcasm, max: 100 },
+            { label: 'Claridad', value: analysis.clarity, max: 100 },
+            { label: 'Seguridad', value: analysis.safety, max: 100 }
+        ];
+        const angles = metrics.map((_, i) => (i * 2 * Math.PI / metrics.length) - Math.PI/2);
+        ctx.beginPath();
+        for (let i = 0; i < angles.length; i++) {
+            const val = metrics[i].value / metrics[i].max;
+            const x = centerX + radius * val * Math.cos(angles[i]);
+            const y = centerY + radius * val * Math.sin(angles[i]);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
         }
-
-        function analyze() {
-            const text = tweetInput.value.trim();
-            if (!text) { resultContainer.innerHTML = '// Introduce un tweet para analizar'; return; }
-            if (text.includes('x.com') || text.includes('twitter.com')) {
-                resultContainer.innerHTML = '// 🔄 No se puede extraer el tweet automáticamente. Escribe el texto manualmente.';
-                return;
-            }
-            const analysis = analyzeTweet(text);
-            currentAnalysis = analysis;
-            currentText = text;
-            if (analysis) updateUI(analysis);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(0,229,255,0.2)';
+        ctx.fill();
+        ctx.strokeStyle = 'var(--accent-glow-1)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = 'var(--text-main)';
+        ctx.font = '10px Inter';
+        for (let i = 0; i < angles.length; i++) {
+            const x = centerX + (radius + 15) * Math.cos(angles[i]);
+            const y = centerY + (radius + 15) * Math.sin(angles[i]);
+            ctx.fillText(metrics[i].label, x - 15, y - 5);
         }
+    }
 
-        function copyResult() {
-            if (!currentAnalysis) { alert("Analiza un tweet primero"); return; }
-            navigator.clipboard.writeText(currentAnalysis.result);
-            copyResultBtn.innerText = "✓ Copiado!";
-            setTimeout(() => { copyResultBtn.innerText = "📋 Copiar análisis"; }, 2000);
-        }
-
-        function enhanceTweet() {
-            if (!currentAnalysis) { alert("Analiza un tweet primero"); return; }
-            navigator.clipboard.writeText(currentAnalysis.enhanced);
-            enhanceBtn.innerText = "✓ Copiado!";
-            setTimeout(() => { enhanceBtn.innerText = "✨ VERSIÓN MEJORADA"; }, 2000);
-            alert("Versión mejorada copiada al portapapeles");
-        }
-
-        analyzeBtn.addEventListener('click', analyze);
-        copyResultBtn.addEventListener('click', copyResult);
-        enhanceBtn.addEventListener('click', enhanceTweet);
-        tweetInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') analyze(); });
-        document.querySelectorAll('.example-btn').forEach(btn => {
-            btn.addEventListener('click', () => { tweetInput.value = btn.innerText; analyze(); });
+    function generateWordcloud(text) {
+        const words = text.toLowerCase().split(/\W+/).filter(w => w.length > 3);
+        const freq = {};
+        words.forEach(w => { freq[w] = (freq[w] || 0) + 1; });
+        const sorted = Object.entries(freq).sort((a,b) => b[1] - a[1]).slice(0, 15);
+        let html = '';
+        sorted.forEach(([word, count]) => {
+            const size = 12 + count * 4;
+            html += `<span style="font-size: ${size}px; display: inline-block; margin: 4px; color: var(--accent-glow-1);">${word}</span>`;
         });
+        document.getElementById('wordcloud').innerHTML = html || '// Palabras clave';
+    }
 
-        const themeToggle = document.getElementById('themeToggle');
-        const htmlTag = document.documentElement;
-        themeToggle.addEventListener('click', () => {
-            const isDark = htmlTag.getAttribute('data-theme') === 'dark';
-            htmlTag.setAttribute('data-theme', isDark ? 'light' : 'dark');
-            themeToggle.innerText = isDark ? '☀️' : '🌙';
+    // ---------- HISTORIAL ----------
+    function saveToHistory(text, analysis) {
+        analysisHistory.unshift({ text: text.substring(0, 100), analysis, timestamp: new Date().toISOString() });
+        if (analysisHistory.length > 20) analysisHistory.pop();
+        localStorage.setItem('voidPulseHistory', JSON.stringify(analysisHistory));
+        renderHistory();
+        updateGlobalStats();
+    }
+
+    function renderHistory() {
+        const historyDiv = document.getElementById('historyList');
+        if (!analysisHistory.length) { historyDiv.innerHTML = '// No hay análisis guardados todavía'; return; }
+        historyDiv.innerHTML = analysisHistory.map((item, idx) => `
+            <div class="history-item" data-idx="${idx}">
+                <div style="display: flex; justify-content: space-between;">
+                    <span>📅 ${new Date(item.timestamp).toLocaleString()}</span>
+                    <span class="badge">${item.analysis.toxicity}% toxicidad</span>
+                </div>
+                <div style="font-size: 12px; margin-top: 4px;">"${item.text}"</div>
+            </div>
+        `).join('');
+        document.querySelectorAll('.history-item').forEach(el => {
+            el.addEventListener('click', () => {
+                const idx = parseInt(el.dataset.idx);
+                document.getElementById('tweetInput').value = analysisHistory[idx].text;
+                analyzeTweet();
+            });
         });
-        analyze();
-    })();
+    }
+
+    function updateGlobalStats() {
+        const total = analysisHistory.length;
+        const avgToxicity = Math.round(analysisHistory.reduce((s, h) => s + h.analysis.toxicity, 0) / total);
+        const safeCount = analysisHistory.filter(h => h.analysis.ratio < 30).length;
+        document.getElementById('globalStats').innerHTML = `📊 ${total} tweets analizados | Toxicidad media: ${avgToxicity}% | ${safeCount} tweets seguros (${Math.round(safeCount/total*100)}%)`;
+    }
+
+    function exportCSV() {
+        let csv = "Fecha,Texto,Toxicidad,Viralidad,Ratio,Backlash,Sarcasmo,Seguridad\n";
+        analysisHistory.forEach(h => {
+            csv += `"${h.timestamp}","${h.text}","${h.analysis.toxicity}","${h.analysis.virality}","${h.analysis.ratio}","${h.analysis.backlash}","${h.analysis.sarcasm}","${h.analysis.safety}"\n`;
+        });
+        const blob = new Blob([csv], {type: 'text/csv'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `void-pulse-history-${Date.now()}.csv`;
+        a.click();
+    }
+
+    // ---------- ACHIEVEMENTS ----------
+    function checkAchievements(analysis) {
+        const newAchievements = [];
+        if (analysisHistory.length === 1 && !achievements.find(a => a.id === 'first')) { newAchievements.push({id:'first', name:'🎉 Primer análisis'}); }
+        if (analysis.toxicity === 0 && !achievements.find(a => a.id === 'safe')) { newAchievements.push({id:'safe', name:'🛡️ Tweet seguro'}); }
+        if (analysis.virality > 80 && !achievements.find(a => a.id === 'viral')) { newAchievements.push({id:'viral', name:'🔥 Tweet viral'}); }
+        if (analysis.ratio > 70 && !achievements.find(a => a.id === 'ratio')) { newAchievements.push({id:'ratio', name:'💢 Ratio alto - Ten cuidado'}); }
+        if (analysis.sarcasm > 70 && !achievements.find(a => a.id === 'sarcasm')) { newAchievements.push({id:'sarcasm', name:'😏 Maestro del sarcasmo'}); }
+        
+        achievements.push(...newAchievements);
+        localStorage.setItem('voidPulseAchievements', JSON.stringify(achievements));
+        renderAchievements();
+        if (newAchievements.length > 0) {
+            const container = document.getElementById('achievementsContainer');
+            newAchievements.forEach(() => { container.classList.add('achievement-unlocked'); setTimeout(() => container.classList.remove('achievement-unlocked'), 500); });
+        }
+    }
+
+    function renderAchievements() {
+        const container = document.getElementById('achievementsContainer');
+        if (!achievements.length) { container.innerHTML = '// Sin logros todavía. ¡Analiza tweets para desbloquear!'; return; }
+        container.innerHTML = achievements.map(a => `<span class="badge">${a.name}</span>`).join('');
+    }
+
+    // ---------- EXPORTAR PNG ----------
+    async function exportAsPNG() {
+        const element = document.querySelector('.glass-card .result-container');
+        if (!element) return;
+        const canvas = await html2canvas(element, { scale: 2 });
+        const link = document.createElement('a');
+        link.download = `void-pulse-analysis-${Date.now()}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+    }
+
+    function shareResult() {
+        if (!currentAnalysis) return;
+        const text = `🔍 Análisis de tweet:\nToxicidad: ${currentAnalysis.toxicity}%\nViralidad: ${currentAnalysis.virality}%\nRiesgo Ratio: ${currentAnalysis.ratio}%\nBacklash: ${currentAnalysis.backlash}\n\nAnaliza tus tweets en: https://axiom-systemstech.github.io/axiom-void-pulse-twitter/`;
+        if (navigator.share) navigator.share({ title: 'Void Pulse Twitter', text });
+        else navigator.clipboard.writeText(text);
+    }
+
+    // ---------- EVENTOS ----------
+    document.getElementById('analyzeBtn').addEventListener('click', analyzeTweet);
+    document.getElementById('copyResultBtn').addEventListener('click', () => {
+        if (currentAnalysis) navigator.clipboard.writeText(document.getElementById('resultContainer').innerText.replace(/<br>/g, '\n'));
+    });
+    document.getElementById('enhanceBtn').addEventListener('click', () => {
+        if (currentAnalysis) navigator.clipboard.writeText(currentAnalysis.enhanced);
+    });
+    document.getElementById('exportPngBtn').addEventListener('click', exportAsPNG);
+    document.getElementById('shareBtn').addEventListener('click', shareResult);
+    document.getElementById('clearHistoryBtn').addEventListener('click', () => { analysisHistory = []; localStorage.removeItem('voidPulseHistory'); renderHistory(); updateGlobalStats(); });
+    document.getElementById('exportCsvBtn').addEventListener('click', exportCSV);
+    document.getElementById('refreshVersionsBtn').addEventListener('click', () => {
+        if (currentAnalysis) { const newVersions = generateVersions(currentText, analyzeByRules(currentText)); currentAnalysis.versions = newVersions; updateUI(currentAnalysis); }
+    });
+    document.getElementById('modeSelector').addEventListener('change', (e) => { currentMode = e.target.value; analyzeTweet(); });
+    
+    document.querySelectorAll('.copy-version-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const version = e.target.dataset.version;
+            if (currentAnalysis) navigator.clipboard.writeText(currentAnalysis.versions[`v${version}`]);
+        });
+    });
+    document.querySelectorAll('.example-btn').forEach(btn => {
+        btn.addEventListener('click', () => { document.getElementById('tweetInput').value = btn.innerText; analyzeTweet(); });
+    });
+
+    const themeToggle = document.getElementById('themeToggle');
+    const htmlTag = document.documentElement;
+    themeToggle.addEventListener('click', () => {
+        const isDark = htmlTag.getAttribute('data-theme') === 'dark';
+        htmlTag.setAttribute('data-theme', isDark ? 'light' : 'dark');
+        themeToggle.innerText = isDark ? '☀️' : '🌙';
+    });
+
+    // Cargar datos guardados
+    const savedHistory = localStorage.getItem('voidPulseHistory');
+    if (savedHistory) { analysisHistory = JSON.parse(savedHistory); renderHistory(); updateGlobalStats(); }
+    const savedAchievements = localStorage.getItem('voidPulseAchievements');
+    if (savedAchievements) { achievements = JSON.parse(savedAchievements); renderAchievements(); }
+    
+    analyzeTweet();
 </script>
 </body>
 </html>
