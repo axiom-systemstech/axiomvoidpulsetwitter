@@ -1,4 +1,4 @@
-# 🐦 AXIOM VOID PULSE TWITTER
+# 𝕏 AXIOM VOID PULSE TWITTER
 
 **Analiza tus tweets antes de postear. IA real. 47 métricas. Resultados precisos.**
 
