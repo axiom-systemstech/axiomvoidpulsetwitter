@@ -1,4 +1,4 @@
-axiom-void-pulse-twitter.example.com {
+axiomvoidpulsetwitter.example.com {
     root * /var/www/html
     file_server
     encode gzip
